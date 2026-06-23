@@ -1,0 +1,53 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: siro-hr-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../siro_hr_chatbot
+    image: siro-hr-backend
+    container_name: siro-hr-backend
+    env_file:
+      - ../siro_hr_chatbot/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../siro_hr_chatbot/uploaded_documents:/app/uploaded_documents
+      - ../siro_hr_chatbot/faiss_index_3b:/app/faiss_index_3b
+      - huggingface_cache:/root/.cache/huggingface
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../siro_chatbot_FE
+      args:
+        VITE_CHATBOT_BACKEND_API: ${VITE_CHATBOT_BACKEND_API}
+    image: siro-chatbot-frontend
+    container_name: siro-chatbot-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  huggingface_cache:
