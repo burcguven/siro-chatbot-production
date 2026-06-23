@@ -205,7 +205,4 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-venv/
-faiss_index_3b/
-__pycache__/
-.env
+
